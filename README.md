@@ -1,1 +1,1 @@
-# gocrawl
+Small web crawler written in go.
