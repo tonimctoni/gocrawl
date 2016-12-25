@@ -49,14 +49,14 @@ func NewPageContent(url string) (*PageContent, error) {
     return &PageContent{get_base_url(url), url, content}, nil
 }
 
-func NewPageContentIfHTML(url string) (*PageContent, error) {
+func NewPageContentIfContentType(url string, content_type string) (*PageContent, error) {
     response, err := http.Get(url)
     if err!=nil {
         return nil, err
     }
     defer response.Body.Close()
 
-    if !strings.Contains(response.Header.Get("Content-Type"), "text/html"){
+    if !strings.Contains(response.Header.Get("Content-Type"), content_type){
         return nil, errors.New("Content-Type does not contain text/html")
     }
 
@@ -94,4 +94,8 @@ func (p *PageContent) get_urls() []string{
         }
     }
     return urls
+}
+
+func (p *PageContent) get_bytes() []byte{
+    return p.content
 }

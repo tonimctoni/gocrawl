@@ -4,6 +4,8 @@ import "runtime"
 import "time"
 import "fmt"
 import "sync/atomic"
+import "io/ioutil"
+import "hash/fnv"
 
 // func consumer() {
 //     //Fuck go's restrictions
@@ -54,17 +56,40 @@ func (m *MyThreadSafeFile) write(url string, urls []string) error{
 }
 
 
+type CssManager struct{
+    counter uint32
+    csshash_set ThreadSafeUint32Set
+}
+
+func NewCssManager() *CssManager{
+    return &CssManager{0,*NewThreadSafeUint32Set()}
+}
+
+func (c *CssManager) manage(content []byte) error{
+    h:=fnv.New32a()
+    h.Write(content)
+    content_hash:=h.Sum32()
+    if c.csshash_set.add(content_hash){
+        return nil
+    }
+    new_counter_value:=atomic.AddUint32(&c.counter, 1)
+    return ioutil.WriteFile(fmt.Sprintf("css/css%05d.css", new_counter_value), content, 0644)
+}
+
+
 //Goal: make list of visited websites and their contained urls
+//also get css files :D
 func main() {
     initialize_global_regexp()
     visited_sites:=NewThreadSafeStringSet()
-    url_queue:=NewThreadSafeStringQueue(100000000)
-    url_queue.push("http://golang.org")
+    url_queue:=NewThreadSafeStringQueue(1000000)
+    url_queue.push("http://cssdb.co")
     output_file,err:=NewMyThreadSafeFile("output_file.txt")
     if err!=nil{
         panic("Could not open (create) output_file.txt")
     }
     defer output_file.close()
+    css_manager:=NewCssManager()
     counter:=uint32(0)
 
     for i:=0;i<120;i++{
@@ -80,16 +105,24 @@ func main() {
                     continue
                 }
 
-                page_content,err:=NewPageContentIfHTML(url)
+                page_content,err:=NewPageContentIfContentType(url, "text/html")
                 if err!=nil{
+                    page_content,err:=NewPageContentIfContentType(url, "text/css")
+                    if err!=nil{
+                        continue
+                    }
+                    err=css_manager.manage(page_content.get_bytes())
+                    if err!=nil{
+                        fmt.Println(err.Error())
+                    }
                     continue
                 }
 
                 new_urls:=page_content.get_urls()
                 url_queue.push_slice(new_urls)
                 output_file.write(url, new_urls)
-                atomic.AddUint32(&counter, 1)
-                fmt.Println(counter, thread_num, url)
+                new_counter_value:=atomic.AddUint32(&counter, 1)
+                fmt.Println(new_counter_value, thread_num, url)
             }
         }(i)
     }
@@ -116,4 +149,9 @@ func main() {
     // fmt.Println(sq.pull())
     // fmt.Println(sq.pull())
     // fmt.Println(sq.pull())
+    // css_manager:=NewCssManager()
+    // fmt.Println(css_manager.manage([]byte("hello")))
+    // fmt.Println(css_manager.manage([]byte("hello")))
+    // fmt.Println(css_manager.manage([]byte("hella")))
+    // fmt.Println(css_manager.manage([]byte("hella")))
 }

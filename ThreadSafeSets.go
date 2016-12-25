@@ -31,3 +31,23 @@ func (t *ThreadSafeStringSet) add(key string) bool {
 
     return contains
 }
+
+//If I make a real set: use RWMutex.
+type ThreadSafeUint32Set struct{
+    mutex sync.Mutex
+    set map[uint32]bool
+}
+
+func NewThreadSafeUint32Set() *ThreadSafeUint32Set{
+    return &ThreadSafeUint32Set{sync.Mutex{}, make(map[uint32]bool)}
+}
+
+func (t *ThreadSafeUint32Set) add(key uint32) bool {
+    t.mutex.Lock()
+    defer t.mutex.Unlock()
+
+    contains:=t.set[key]
+    t.set[key]=true
+
+    return contains
+}
