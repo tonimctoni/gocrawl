@@ -55,23 +55,33 @@ type PageContent struct{
 //     return &PageContent{get_base_url(url), url, content}, nil
 // }
 
-func NewPageContentIfContentType(url string, content_type string) (*PageContent, error) {
+type WrongMimeTypeError error
+func NewPageContentIfContentType(url string, content_type... string) (*PageContent, int, error) {
     response, err := client_pagecontent.Get(url)
     if err!=nil {
-        return nil, err
+        return nil, -1, err
     }
     defer response.Body.Close()
 
-    if !strings.Contains(response.Header.Get("Content-Type"), content_type){
-        return nil, errors.New("Content-Type does not contain text/html")
+    content_type_index:=int(-1)
+    if func()bool{
+        for index,ct:=range content_type{
+            if strings.Contains(response.Header.Get("Content-Type"), ct){
+                content_type_index=index
+                return false
+            }
+        }
+        return true
+    }(){
+        return nil, -1, WrongMimeTypeError(errors.New("Content-Type does not contain mime type"))
     }
 
     content, err:=ioutil.ReadAll(response.Body)
     if err!=nil {
-        return nil, err
+        return nil, -1, err
     }
 
-    return &PageContent{get_base_url(url), url, content}, nil
+    return &PageContent{get_base_url(url), url, content}, content_type_index, nil
 }
 
 func (p *PageContent) get_urls() []string{

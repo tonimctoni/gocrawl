@@ -125,10 +125,16 @@ func main() {
     // defer output_file.close()
     css_manager:=NewCssManager()
     counter:=uint32(0)
-
+    error_counter:=uint32(0)
     for i:=0;i<300;i++{
         go func(thread_num int){
-            for {//j:=0;j<10;j++{
+            defer func(){
+                if r:=recover(); r!=nil {
+                    new_error_counter:=atomic.AddUint32(&error_counter, 1)
+                    ioutil.WriteFile(fmt.Sprintf("error_%03d.txt", new_error_counter), []byte(fmt.Sprintln(r)), 0644)
+                }
+            }()
+            for {
                 url,err:=url_queue.pull()
                 if err!=nil{
                     runtime.Gosched()
@@ -139,12 +145,12 @@ func main() {
                     continue
                 }
 
-                page_content,err:=NewPageContentIfContentType(url, "text/html")
+                page_content,content_type_index,err:=NewPageContentIfContentType(url, "text/css", "text/html")
                 if err!=nil{
-                    page_content,err:=NewPageContentIfContentType(url, "text/css")
-                    if err!=nil{
-                        continue
-                    }
+                    continue
+                }
+
+                if content_type_index==0{
                     err=css_manager.manage(page_content.get_bytes())
                     if err!=nil{
                         fmt.Println(err.Error())
