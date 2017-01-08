@@ -1,4 +1,6 @@
 all:
-	go build gocrawl.go PageContent.go ThreadSafeStringQueue.go ThreadSafeSets.go
+	/usr/local/go/bin/go build gocrawl.go PageContent.go ThreadSafeStringQueue.go ThreadSafeSets.go
 run:
-	go run gocrawl.go PageContent.go ThreadSafeStringQueue.go ThreadSafeSets.go
+	/usr/local/go/bin/go run gocrawl.go PageContent.go ThreadSafeStringQueue.go ThreadSafeSets.go
+
+# go build -ldflags "-s -w"

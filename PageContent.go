@@ -5,10 +5,16 @@ import "net/http"
 import "regexp"
 import "strings"
 import "errors"
+import "time"
 
 var re_urlfinder *regexp.Regexp
 func initialize_global_regexp() {
     re_urlfinder=regexp.MustCompile("(?:href=|src=|url=)[\"']?([^\"' <>]*)")
+}
+
+var client_pagecontent *http.Client
+func initialize_global_client() {
+    client_pagecontent=&http.Client{Timeout: 5*time.Second}
 }
 
 func get_base_url(url string) string {
@@ -34,23 +40,23 @@ type PageContent struct{
     content []byte
 }
 
-func NewPageContent(url string) (*PageContent, error) {
-    response, err := http.Get(url)
-    if err!=nil {
-        return nil, err
-    }
-    defer response.Body.Close()
+// func NewPageContent(url string) (*PageContent, error) {
+//     response, err := http.Get(url)
+//     if err!=nil {
+//         return nil, err
+//     }
+//     defer response.Body.Close()
 
-    content, err:=ioutil.ReadAll(response.Body)
-    if err!=nil {
-        return nil, err
-    }
+//     content, err:=ioutil.ReadAll(response.Body)
+//     if err!=nil {
+//         return nil, err
+//     }
 
-    return &PageContent{get_base_url(url), url, content}, nil
-}
+//     return &PageContent{get_base_url(url), url, content}, nil
+// }
 
 func NewPageContentIfContentType(url string, content_type string) (*PageContent, error) {
-    response, err := http.Get(url)
+    response, err := client_pagecontent.Get(url)
     if err!=nil {
         return nil, err
     }
@@ -77,6 +83,10 @@ func (p *PageContent) get_urls() []string{
         if hash_index!=-1{
             value=value[:hash_index]
         }
+        quest_index:=strings.Index(value, "?")//The web is too large to crawl it all anyways
+        if quest_index!=-1{
+            value=value[:quest_index]
+        }
         if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://"){
             urls=append(urls, value)
         } else if value=="" || value=="/" || value=="\\" || value=="#"{
@@ -95,6 +105,43 @@ func (p *PageContent) get_urls() []string{
     }
     return urls
 }
+
+// func (p *PageContent) get_some_urls(num int) []string{
+//     urls := make([]string, 0, num)
+//     urls=append(urls, p.base_url)
+//     c:=0
+//     for _,value:=range re_urlfinder.FindAllSubmatch(p.content,-1){
+//         value:=string(value[1])
+//         hash_index:=strings.Index(value, "#")
+//         if hash_index!=-1{
+//             value=value[:hash_index]
+//         }
+//         quest_index:=strings.Index(value, "?")//The web is too large to crawl it all anyways
+//         if quest_index!=-1{
+//             value=value[:quest_index]
+//         }
+//         if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://"){
+//             urls=append(urls, value)
+//         } else if value=="" || value=="/" || value=="\\" || value=="#"{
+//             continue
+//         } else if strings.HasPrefix(value, "//"){
+//             urls=append(urls, "http:"+value)
+//         } else if strings.HasPrefix(value, "/"){
+//             urls=append(urls, p.base_url+value)
+//         } else if strings.HasPrefix(value, "."){
+//             continue //too complicated, too much laziness
+//         } else if strings.HasSuffix(p.full_url, "/") {
+//             urls=append(urls, p.full_url+value) //full_url could also be done better
+//         } else {
+//             // fmt.Println("Having problems with:", p.full_url, value)
+//         }
+//         c++
+//         if c>=num{
+//             break
+//         }
+//     }
+//     return urls
+// }
 
 func (p *PageContent) get_bytes() []byte{
     return p.content
