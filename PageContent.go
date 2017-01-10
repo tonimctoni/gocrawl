@@ -35,27 +35,12 @@ func get_base_url(url string) string {
 }
 
 type PageContent struct{
-    base_url string
     full_url string
     content []byte
 }
 
-// func NewPageContent(url string) (*PageContent, error) {
-//     response, err := http.Get(url)
-//     if err!=nil {
-//         return nil, err
-//     }
-//     defer response.Body.Close()
 
-//     content, err:=ioutil.ReadAll(response.Body)
-//     if err!=nil {
-//         return nil, err
-//     }
-
-//     return &PageContent{get_base_url(url), url, content}, nil
-// }
-
-type WrongMimeTypeError error
+// type WrongMimeTypeError error
 func NewPageContentIfContentType(url string, content_type... string) (*PageContent, int, error) {
     response, err := client_pagecontent.Get(url)
     if err!=nil {
@@ -73,7 +58,7 @@ func NewPageContentIfContentType(url string, content_type... string) (*PageConte
         }
         return true
     }(){
-        return nil, -1, WrongMimeTypeError(errors.New("Content-Type does not contain mime type"))
+        return nil, -1, errors.New("Content-Type does not contain mime type")
     }
 
     content, err:=ioutil.ReadAll(response.Body)
@@ -81,12 +66,13 @@ func NewPageContentIfContentType(url string, content_type... string) (*PageConte
         return nil, -1, err
     }
 
-    return &PageContent{get_base_url(url), url, content}, content_type_index, nil
+    return &PageContent{url, content}, content_type_index, nil
 }
 
 func (p *PageContent) get_urls() []string{
     urls := make([]string, 0, 64)
-    urls=append(urls, p.base_url)
+    base_url:=get_base_url(p.full_url)
+    urls=append(urls, base_url)
     for _,value:=range re_urlfinder.FindAllSubmatch(p.content,-1){
         value:=string(value[1])
         hash_index:=strings.Index(value, "#")
@@ -104,7 +90,7 @@ func (p *PageContent) get_urls() []string{
         } else if strings.HasPrefix(value, "//"){
             urls=append(urls, "http:"+value)
         } else if strings.HasPrefix(value, "/"){
-            urls=append(urls, p.base_url+value)
+            urls=append(urls, base_url+value)
         } else if strings.HasPrefix(value, "."){
             continue //too complicated, too much laziness
         } else if strings.HasSuffix(p.full_url, "/") {
@@ -115,43 +101,6 @@ func (p *PageContent) get_urls() []string{
     }
     return urls
 }
-
-// func (p *PageContent) get_some_urls(num int) []string{
-//     urls := make([]string, 0, num)
-//     urls=append(urls, p.base_url)
-//     c:=0
-//     for _,value:=range re_urlfinder.FindAllSubmatch(p.content,-1){
-//         value:=string(value[1])
-//         hash_index:=strings.Index(value, "#")
-//         if hash_index!=-1{
-//             value=value[:hash_index]
-//         }
-//         quest_index:=strings.Index(value, "?")//The web is too large to crawl it all anyways
-//         if quest_index!=-1{
-//             value=value[:quest_index]
-//         }
-//         if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://"){
-//             urls=append(urls, value)
-//         } else if value=="" || value=="/" || value=="\\" || value=="#"{
-//             continue
-//         } else if strings.HasPrefix(value, "//"){
-//             urls=append(urls, "http:"+value)
-//         } else if strings.HasPrefix(value, "/"){
-//             urls=append(urls, p.base_url+value)
-//         } else if strings.HasPrefix(value, "."){
-//             continue //too complicated, too much laziness
-//         } else if strings.HasSuffix(p.full_url, "/") {
-//             urls=append(urls, p.full_url+value) //full_url could also be done better
-//         } else {
-//             // fmt.Println("Having problems with:", p.full_url, value)
-//         }
-//         c++
-//         if c>=num{
-//             break
-//         }
-//     }
-//     return urls
-// }
 
 func (p *PageContent) get_bytes() []byte{
     return p.content
