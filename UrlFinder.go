@@ -12,12 +12,12 @@ func NewUrlFinder() *UrlFinder{
 }
 
 
-const MAX_HOST_SHARING_URLS_PER_SITE = 5
+const MAX_HOST_SHARING_URLS_PER_SITE = 3
 
 
 func (u *UrlFinder) get_urls(base_url_s string, content []byte) []string{
     urls:=make([]string, 0, 64)
-    // hosts_counts:=make(map[string]uint)
+    hosts_counts:=make(map[string]uint)
     base_url, err:=url.Parse(base_url_s)
     if err!=nil{
         return urls
@@ -29,13 +29,13 @@ func (u *UrlFinder) get_urls(base_url_s string, content []byte) []string{
         }
 
         potential_url=base_url.ResolveReference(potential_url)
-        // hostname:=potential_url.Hostname()
+        hostname:=potential_url.Hostname()
 
-        // if len(hostname)==0 || hosts_counts[hostname]>=MAX_HOST_SHARING_URLS_PER_SITE{
-        //     continue
-        // }
+        if len(hostname)==0 || hosts_counts[hostname]>=MAX_HOST_SHARING_URLS_PER_SITE{
+            continue
+        }
 
-        // hosts_counts[hostname]+=1
+        hosts_counts[hostname]+=1
 
         urls=append(urls, potential_url.String())
     }
