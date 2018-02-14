@@ -8,7 +8,7 @@ Small web crawler written in go.
 
  - Maybe don't use defer if there is only one return in a function.
 
- - Do not have the css stuff running in an extra dedicated thread.
+<!--  - Do not have the css stuff running in an extra dedicated thread. -->
 
 <!--  - Filter already used urls outside of `get_urls` function. -->
 
@@ -18,7 +18,7 @@ Small web crawler written in go.
 
  - Explain in documentation that structs are threadsafe if they are.
 
- - Test `UrlFinder`.
+<!--  - Test `UrlFinder`. -->
 
 <!--  - `UrlFinder.get_urls` should return roots of urls found too.
     - Url is missing the crucial method, so disregard this. -->

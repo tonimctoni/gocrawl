@@ -6,7 +6,7 @@ import "fmt"
 import "sync/atomic"
 import "io/ioutil"
 
-const NUM_THREADS = 500
+const NUM_THREADS = 100
 
 
 func main() {
@@ -61,8 +61,6 @@ func main() {
                 default:
                     panic("content_type_index has a value it should never have")
                 }
-
-                // time.Sleep(2*time.Second)
             }
         }()
     }
